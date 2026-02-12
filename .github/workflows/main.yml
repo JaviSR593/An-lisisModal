@@ -1,0 +1,60 @@
+name: Construir VBasal
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Descargar tu código
+    - name: Chequear código
+      uses: actions/checkout@v4
+
+    # 2. Instalar Python 3.11
+    - name: Instalar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    # 3. Instalar Flutter 3.24.5 (Estable y compatible)
+    - name: Instalar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        cache: true
+
+    # 4. Instalar dependencias
+    - name: Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        # Instala tus requerimientos
+        pip install -r requirements.txt
+        # Fuerza la instalación de flet compatible por seguridad
+        pip install flet==0.25.2
+
+    # 5. EL SALVAVIDAS: Renombrar VBasal.py a main.py
+    # Si tu archivo se llama VBasal.py, esto lo arregla automáticamente antes de compilar.
+    - name: Configurar entrada de la App
+      run: |
+        if [ -f "VBasal.py" ]; then
+          mv VBasal.py main.py
+          echo "✅ Archivo renombrado exitosamente a main.py"
+        else
+          echo "ℹ️ No se encontró VBasal.py, asumiendo que ya existe main.py"
+        fi
+
+    # 6. Generar el APK con el nombre "VBasal"
+    - name: Construir APK
+      run: |
+        flet build apk --product "VBasal" --verbose
+
+    # 7. Subir el APK para que lo descargues
+    - name: Subir el APK generado
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: build/apk/app-release.apk
